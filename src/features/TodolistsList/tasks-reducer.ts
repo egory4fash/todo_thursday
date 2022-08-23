@@ -2,7 +2,9 @@ import {AddTodolistActionType, RemoveTodolistActionType, SetTodolistsActionType}
 import {TaskPriorities, TaskStatuses, TaskType, todolistsAPI, UpdateTaskModelType} from '../../api/todolists-api'
 import {Dispatch} from 'redux'
 import {AppRootStateType} from '../../app/store'
-import {setAppStatusAC, setAppStatusACType} from "../../app/app-reducer";
+import {setAppStatusAC, setAppStatusACType, setErrorAC, setErrorACType} from "../../app/app-reducer";
+import {AxiosError} from "axios";
+import {NetworkErrorHandler} from "../../helpers/networkErrorHandler";
 
 const initialState: TasksStateType = {}
 
@@ -49,6 +51,12 @@ export const setTasksAC = (tasks: Array<TaskType>, todolistId: string) =>
     ({type: 'SET-TASKS', tasks, todolistId} as const)
 
 // thunks
+
+enum ResultCodes  {
+    success =0,
+    error=1
+
+}
 export const fetchTasksTC = (todolistId: string) => (dispatch: Dispatch<ActionsType>) => {
     dispatch(setAppStatusAC('loading'))
     todolistsAPI.getTasks(todolistId)
@@ -72,11 +80,18 @@ export const addTaskTC = (title: string, todolistId: string) => (dispatch: Dispa
     dispatch(setAppStatusAC('loading'))
     todolistsAPI.createTask(todolistId, title)
         .then(res => {
-            const task = res.data.data.item
-            const action = addTaskAC(task)
-            dispatch(action)
-            dispatch(setAppStatusAC('succeeded'))
-        })
+            if (res.data.resultCode === ResultCodes.success) {
+                const task = res.data.data.item
+                const action = addTaskAC(task)
+                dispatch(action)
+            } else {
+                dispatch(setErrorAC(res.data.messages[0]))
+            }
+        }).catch((error: AxiosError) => {
+        NetworkErrorHandler(dispatch,error.message)
+    })
+
+
 }
 export const updateTaskTC = (taskId: string, domainModel: UpdateDomainTaskModelType, todolistId: string) =>
     (dispatch: Dispatch<ActionsType>, getState: () => AppRootStateType) => {
@@ -127,3 +142,4 @@ type ActionsType =
     | SetTodolistsActionType
     | ReturnType<typeof setTasksAC>
     | setAppStatusACType
+    | setErrorACType
