@@ -22,6 +22,13 @@ type PropsType = {
 
 function App({demo = false}: PropsType) {
     const status = useSelector<AppRootStateType, RequestStatusType>((state) => state.app.status)
+    const isLogined = useSelector<AppRootStateType, boolean>((state) => state.auth.isLoggedIn)
+
+
+    if (isLogined) {
+        return <Navigate to={'/'}></Navigate>
+    }
+
     return (
         <div className="App">
             <ErrorSnackbar/>
